@@ -1,0 +1,32 @@
+@ELFAssessment.API_HostAddress = https://localhost:7143
+@apiKey = elf-dev-api-key
+
+### List breweries (default sort by name)
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries
+Accept: application/json
+X-Api-Key: {{apiKey}}
+
+### Search and sort by city
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries?search=micro&sortBy=City&sortDirection=Asc
+Accept: application/json
+X-Api-Key: {{apiKey}}
+
+### Sort by distance from an origin
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries?sortBy=Distance&latitude=50.24&longitude=11.32
+Accept: application/json
+X-Api-Key: {{apiKey}}
+
+### Get a single brewery
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries/ae7b3174-8be8-4d53-a3a5-9b8240970eea
+Accept: application/json
+X-Api-Key: {{apiKey}}
+
+### Autocomplete brewery names
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries/autocomplete?term=10&limit=5
+Accept: application/json
+X-Api-Key: {{apiKey}}
+
+### Missing API key (should return 401)
+GET {{ELFAssessment.API_HostAddress}}/api/v1/breweries
+Accept: application/json
+

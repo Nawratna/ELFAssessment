@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ELFAssessment.API/ELFAssessment.API.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ELFAssessment.Tests/ELFAssessment.Tests.csproj" />
+  </Folder>
+</Solution>
