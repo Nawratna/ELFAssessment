@@ -16,6 +16,7 @@ A production-quality RESTful .NET Web API that fetches, caches, and serves brewe
 - [Storage Providers](#storage-providers)
 - [Authentication](#authentication)
 - [Error Handling](#error-handling)
+- [Logging](#logging)
 - [Caching Strategy](#caching-strategy)
 - [Unit Tests](#unit-tests)
 - [Design Decisions](#design-decisions)
@@ -277,6 +278,93 @@ The API supports two interchangeable storage backends, selectable via `StoragePr
 | Any other exception | 500 Internal Server Error | Generic message (internals never leaked) |
 
 Every error response includes a `traceId` for log correlation.
+
+---
+
+## Logging
+
+### Approach
+
+The API uses ASP.NET Core's built-in `ILogger<T>` for structured, strongly-typed logging throughout every layer. There are **zero** `Console.WriteLine` calls in the codebase.
+
+### What Gets Logged
+
+| Layer | Class | What Is Logged | Level |
+|---|---|---|---|
+| **Data Fetching** | `OpenBreweryDbLoader` | Each API page URL fetched, brewery count per page, total loaded | `Information` |
+| **Caching** | `InMemoryBreweryRepository` | Cache miss/hit, number of breweries cached, cache duration | `Information` |
+| **Caching** | `SqliteBreweryRepository` | Cache miss, load from SQLite | `Information` |
+| **Business Logic** | `BreweryService` | Query result count, total matches, page number | `Information` |
+| **Controller** | `BreweriesController` | Incoming request parameters (search term, sort field, page) | `Information` |
+| **Auth** | `ApiKeyAuthenticationHandler` | Authentication success/failure (via built-in auth logging) | `Information` |
+| **Errors** | `ExceptionHandlingMiddleware` | Full exception with stack trace, HTTP method, request path | `Error` |
+| **DB Seeding** | `DatabaseInitializer` | Seed start, skip-if-exists, count of seeded records | `Information` |
+| **DB Refresh** | `DataRefreshService` | Refresh start, count of refreshed records, retry on failure | `Information` / `Error` |
+| **HTTP Client** | `IHttpClientFactory` | Outgoing HTTP request/response (URL, status code, duration) | `Information` |
+
+### Sample Log Output
+
+```
+info: InMemoryBreweryRepository     Cache miss – loading breweries from source
+info: OpenBreweryDbLoader           Fetching breweries from https://api.openbrewerydb.org/v1/breweries?page=1&per_page=200
+info: OpenBreweryDbLoader           Loaded 200 breweries (page 1)
+...
+info: OpenBreweryDbLoader           Total breweries loaded from API: 11848
+info: InMemoryBreweryRepository     Cached 11848 breweries for 00:10:00
+info: BreweriesController           GET breweries – search=portland, sortBy=Name, page=1
+info: BreweryService                Query returned 3/109 breweries (page 1)
+fail: ExceptionHandlingMiddleware   Unhandled exception processing GET /api/v1/Breweries
+                                    System.ArgumentException: Invalid parameter...
+```
+
+### Log Configuration
+
+Log levels are configured in `appsettings.json` and `appsettings.Development.json`:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
+```
+
+| Setting | Effect |
+|---|---|
+| `Default: Information` | All application logs at `Information` level and above are emitted |
+| `Microsoft.AspNetCore: Warning` | Suppresses noisy ASP.NET framework logs (request pipeline, routing) |
+
+### Log Storage & Providers
+
+By default, logs are written to the **console** (stdout) via ASP.NET Core's built-in console provider. In production, you can add additional providers without code changes by installing NuGet packages and updating config:
+
+| Provider | NuGet Package | Storage |
+|---|---|---|
+| **Console** (default) | Built-in | Terminal / stdout |
+| **Debug** (default) | Built-in | VS Code Debug Console |
+| **File** (Serilog) | `Serilog.Sinks.File` | Rolling log files on disk |
+| **Application Insights** | `Microsoft.Extensions.Logging.ApplicationInsights` | Azure cloud monitoring |
+| **Seq** | `Serilog.Sinks.Seq` | Centralized structured log server |
+| **Elasticsearch** | `Serilog.Sinks.Elasticsearch` | ELK stack |
+
+The `ILogger<T>` abstraction ensures the application code is **decoupled from log storage**. Switching providers is a config-only change — no service code modifications needed.
+
+### Structured Logging
+
+All log messages use structured templates (not string concatenation):
+
+```csharp
+// ✅ Structured (searchable, parseable)
+_logger.LogInformation("Query returned {Count}/{Total} breweries (page {Page})", count, total, page);
+
+// ❌ Not used anywhere in the codebase
+Console.WriteLine($"Query returned {count}/{total} breweries (page {page})");
+```
+
+This means log aggregation tools (Seq, Application Insights, Elasticsearch) can filter on individual fields like `Count`, `Total`, or `Page` rather than parsing free-text strings.
 
 ---
 
