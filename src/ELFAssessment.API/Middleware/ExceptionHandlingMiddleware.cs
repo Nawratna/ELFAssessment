@@ -37,18 +37,24 @@ public sealed class ExceptionHandlingMiddleware
         {
             ArgumentException => (int)HttpStatusCode.BadRequest,
             KeyNotFoundException => (int)HttpStatusCode.NotFound,
+            UnauthorizedAccessException => (int)HttpStatusCode.Forbidden,
+            NotSupportedException => (int)HttpStatusCode.NotImplemented,
+            OperationCanceledException => 499, // client closed request
             _ => (int)HttpStatusCode.InternalServerError
         };
 
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/problem+json";
 
+        // Don't leak internal details for server errors
+        var detail = statusCode >= 500 ? "An unexpected error occurred." : ex.Message;
+
         var problem = new
         {
             type = $"https://httpstatuses.com/{statusCode}",
             title = ((HttpStatusCode)statusCode).ToString(),
             status = statusCode,
-            detail = ex.Message,
+            detail,
             traceId = context.TraceIdentifier
         };
 

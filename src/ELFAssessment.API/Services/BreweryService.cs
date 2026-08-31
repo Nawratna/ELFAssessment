@@ -43,11 +43,10 @@ public sealed class BreweryService : IBreweryService
             return [];
 
         var all = await _repository.GetAllAsync(cancellationToken);
-        var lowerTerm = term.ToLowerInvariant();
 
         return all
-            .Where(b => b.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(b => !b.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase)) // prefix matches first
+            .Where(b => b.Name?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+            .OrderBy(b => !(b.Name?.StartsWith(term, StringComparison.OrdinalIgnoreCase) ?? false))
             .ThenBy(b => b.Name)
             .Select(b => b.Name)
             .Distinct()
@@ -61,12 +60,12 @@ public sealed class BreweryService : IBreweryService
             return breweries.ToList();
 
         return breweries.Where(b =>
-            b.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-            b.City.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-            b.StateProvince.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-            b.Country.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-            b.BreweryType.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-            b.PostalCode.Contains(search, StringComparison.OrdinalIgnoreCase)
+            (b.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.City?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.StateProvince?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.Country?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.BreweryType?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.PostalCode?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
         ).ToList();
     }
 

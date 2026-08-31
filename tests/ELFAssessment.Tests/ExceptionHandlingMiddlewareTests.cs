@@ -86,4 +86,36 @@ public class ExceptionHandlingMiddlewareTests
         Assert.Contains("Test error", body);
         Assert.Contains("traceId", body);
     }
+
+    [Fact]
+    public async Task InvokeAsync_UnauthorizedAccessException_Returns403()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new UnauthorizedAccessException("Forbidden"),
+            _loggerMock.Object);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(403, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ServerError_DoesNotLeakDetails()
+    {
+        var context = new DefaultHttpContext();
+        var bodyStream = new MemoryStream();
+        context.Response.Body = bodyStream;
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new InvalidOperationException("Sensitive internal info"),
+            _loggerMock.Object);
+
+        await middleware.InvokeAsync(context);
+
+        bodyStream.Seek(0, SeekOrigin.Begin);
+        var body = new StreamReader(bodyStream).ReadToEnd();
+        Assert.DoesNotContain("Sensitive internal info", body);
+        Assert.Contains("An unexpected error occurred", body);
+    }
 }

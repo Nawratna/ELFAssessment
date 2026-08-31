@@ -28,6 +28,7 @@ if (breweryOptions.StorageProvider.Equals("Sqlite", StringComparison.OrdinalIgno
         opts.UseSqlite(breweryOptions.ConnectionString));
     builder.Services.AddScoped<IBreweryRepository, SqliteBreweryRepository>();
     builder.Services.AddTransient<DatabaseInitializer>();
+    builder.Services.AddHostedService<DataRefreshService>();
 }
 else
 {
@@ -46,19 +47,20 @@ builder.Services.AddAuthorization();
 builder.Services.AddApiVersioning(opts =>
 {
     opts.DefaultApiVersion = new ApiVersion(1, 0);
-    opts.AssumeDefaultVersionWhenUnspecified = true;
     opts.ReportApiVersions = true;
     opts.ApiVersionReader = ApiVersionReader.Combine(
         new UrlSegmentApiVersionReader(),
         new HeaderApiVersionReader("x-api-version"));
-}).AddApiExplorer(opts =>
+}).AddMvc()
+.AddApiExplorer(opts =>
 {
     opts.GroupNameFormat = "'v'VVV";
     opts.SubstituteApiVersionInUrl = true;
 });
 
 // ── Controllers + Swagger ──────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -70,9 +72,10 @@ builder.Services.AddSwaggerGen(c =>
         In = Microsoft.OpenApi.ParameterLocation.Header,
         Description = "API key for authentication"
     });
-    c.AddSecurityRequirement(_ => new Microsoft.OpenApi.OpenApiSecurityRequirement
+    // The scheme reference must be bound to the host document, otherwise it serializes as an empty object.
+    c.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
     {
-        [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("ApiKey")] = new List<string>()
+        [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
     });
 });
 
