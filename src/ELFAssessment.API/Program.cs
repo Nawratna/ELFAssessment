@@ -6,6 +6,7 @@ using ELFAssessment.API.Security;
 using ELFAssessment.API.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 // =============================================================================
 // ELF Brewery API – Composition Root (Program.cs)
@@ -14,6 +15,17 @@ using Microsoft.EntityFrameworkCore;
 // =============================================================================
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Serilog: writes to both Console and rolling log files in Logs/ folder ───
+builder.Host.UseSerilog((context, config) => config
+    .ReadFrom.Configuration(context.Configuration)
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "Logs/elf-brewery-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+);
 
 // ── Configuration ──────────────────────────────────────────────────────
 // Bind strongly-typed option classes to their appsettings.json sections

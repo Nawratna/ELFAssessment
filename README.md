@@ -337,20 +337,36 @@ Log levels are configured in `appsettings.json` and `appsettings.Development.jso
 | `Default: Information` | All application logs at `Information` level and above are emitted |
 | `Microsoft.AspNetCore: Warning` | Suppresses noisy ASP.NET framework logs (request pipeline, routing) |
 
-### Log Storage & Providers
+### Log Storage
 
-By default, logs are written to the **console** (stdout) via ASP.NET Core's built-in console provider. In production, you can add additional providers without code changes by installing NuGet packages and updating config:
+Logging is powered by **Serilog** with two sinks configured in `Program.cs`:
 
-| Provider | NuGet Package | Storage |
+| Sink | Output | Details |
 |---|---|---|
-| **Console** (default) | Built-in | Terminal / stdout |
-| **Debug** (default) | Built-in | VS Code Debug Console |
-| **File** (Serilog) | `Serilog.Sinks.File` | Rolling log files on disk |
-| **Application Insights** | `Microsoft.Extensions.Logging.ApplicationInsights` | Azure cloud monitoring |
-| **Seq** | `Serilog.Sinks.Seq` | Centralized structured log server |
-| **Elasticsearch** | `Serilog.Sinks.Elasticsearch` | ELK stack |
+| **Console** | Terminal / stdout | Real-time log output while running |
+| **Rolling File** | `src/ELFAssessment.API/Logs/elf-brewery-YYYYMMDD.log` | Daily rolling files, retained for 30 days |
 
-The `ILogger<T>` abstraction ensures the application code is **decoupled from log storage**. Switching providers is a config-only change — no service code modifications needed.
+**Log file location:**
+```
+src/ELFAssessment.API/Logs/
+├── elf-brewery-20260831.log    ← today's log
+├── elf-brewery-20260830.log    ← yesterday's log
+└── ...                         ← auto-deleted after 30 days
+```
+
+**Log file format:**
+```
+2026-08-31 23:31:38.505 +05:30 [INF] BreweriesController: GET breweries – search=portland, sortBy="Name", page=1
+2026-08-31 23:31:38.516 +05:30 [INF] InMemoryBreweryRepository: Cache miss – loading breweries from source
+2026-08-31 23:31:39.846 +05:30 [INF] OpenBreweryDbLoader: Loaded 200 breweries (page 1)
+2026-08-31 23:32:01.123 +05:30 [ERR] ExceptionHandlingMiddleware: Unhandled exception processing GET /api/v1/Breweries
+```
+
+Each entry includes: **timestamp** (with timezone), **log level** (`INF`/`WRN`/`ERR`), **source class**, and **structured message**.
+
+The `Logs/` folder is listed in `.gitignore` — log files are never committed to the repository.
+
+For production, additional sinks (Application Insights, Seq, Elasticsearch) can be added via NuGet packages and `appsettings.json` configuration without changing any application code.
 
 ### Structured Logging
 
@@ -436,6 +452,7 @@ Tests use **Moq** for mocking interfaces and **EF Core InMemory** provider for d
 | .NET 10 / ASP.NET Core | Web API framework |
 | Entity Framework Core + SQLite | Relational database provider (bonus task) |
 | `IMemoryCache` + `SemaphoreSlim` | In-memory caching with stampede protection |
+| Serilog | Structured logging to console + daily rolling log files |
 | xUnit + Moq | Unit testing framework |
 | Swashbuckle | Swagger / OpenAPI documentation |
 | Asp.Versioning.Mvc | API versioning (URL segment + header) |
