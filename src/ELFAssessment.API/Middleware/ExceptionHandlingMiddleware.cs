@@ -3,6 +3,12 @@ using System.Text.Json;
 
 namespace ELFAssessment.API.Middleware;
 
+/// <summary>
+/// Global exception handler that catches unhandled exceptions and returns
+/// RFC 7807 ProblemDetails JSON responses. Maps specific exception types
+/// to appropriate HTTP status codes (400, 403, 404, 500, etc.).
+/// Server errors (5xx) use a generic message to avoid leaking internal details.
+/// </summary>
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -14,6 +20,7 @@ public sealed class ExceptionHandlingMiddleware
         _logger = logger;
     }
 
+    /// <summary>Wraps the next middleware in a try/catch; converts exceptions to ProblemDetails responses.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try

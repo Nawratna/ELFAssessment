@@ -2,6 +2,10 @@ using ELFAssessment.API.Models;
 
 namespace ELFAssessment.API.Services;
 
+/// <summary>
+/// Core business logic: applies search filtering, sorting (name/city/distance), pagination,
+/// and autocomplete over the cached brewery dataset from <see cref="IBreweryRepository"/>.
+/// </summary>
 public sealed class BreweryService : IBreweryService
 {
     private readonly IBreweryRepository _repository;
@@ -13,6 +17,7 @@ public sealed class BreweryService : IBreweryService
         _logger = logger;
     }
 
+    /// <summary>Loads all breweries, applies search → sort → pagination, and returns a paged result.</summary>
     public async Task<PagedResult<Brewery>> GetBreweriesAsync(BreweryQuery query, CancellationToken cancellationToken = default)
     {
         var all = await _repository.GetAllAsync(cancellationToken);
@@ -32,11 +37,13 @@ public sealed class BreweryService : IBreweryService
         };
     }
 
+    /// <summary>Retrieves a single brewery by its unique ID.</summary>
     public async Task<Brewery?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _repository.GetByIdAsync(id, cancellationToken);
     }
 
+    /// <summary>Returns distinct brewery names containing the term, with prefix matches ranked first.</summary>
     public async Task<IReadOnlyList<string>> AutocompleteAsync(string term, int limit = 10, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(term))
@@ -54,6 +61,7 @@ public sealed class BreweryService : IBreweryService
             .ToList();
     }
 
+    /// <summary>Case-insensitive search across name, city, state, country, type, and postal code.</summary>
     private static List<Brewery> Filter(IReadOnlyList<Brewery> breweries, string? search)
     {
         if (string.IsNullOrWhiteSpace(search))
@@ -69,6 +77,7 @@ public sealed class BreweryService : IBreweryService
         ).ToList();
     }
 
+    /// <summary>Sorts breweries by the requested field and direction. Distance uses haversine formula.</summary>
     private static List<Brewery> Sort(List<Brewery> breweries, BreweryQuery query)
     {
         IOrderedEnumerable<Brewery> ordered = query.SortBy switch
@@ -91,6 +100,7 @@ public sealed class BreweryService : IBreweryService
         return ordered.ToList();
     }
 
+    /// <summary>Calculates distance from origin to brewery. Returns double.MaxValue if coordinates are missing.</summary>
     private static double DistanceFrom(Brewery b, double lat, double lon)
     {
         if (!b.Latitude.HasValue || !b.Longitude.HasValue)

@@ -8,6 +8,11 @@ using Microsoft.Extensions.Options;
 
 namespace ELFAssessment.API.Security;
 
+/// <summary>
+/// Custom authentication handler that validates the X-Api-Key header.
+/// Uses CryptographicOperations.FixedTimeEquals to prevent timing attacks.
+/// If no API key is configured, authentication is skipped (NoResult).
+/// </summary>
 public sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly ApiKeyOptions _apiKeyOptions;
@@ -22,6 +27,7 @@ public sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authenti
         _apiKeyOptions = apiKeyOptions.Value;
     }
 
+    /// <summary>Validates the API key from the request header against the configured value.</summary>
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (string.IsNullOrEmpty(_apiKeyOptions.Value))
