@@ -213,6 +213,39 @@ The `search` parameter performs a **single, case-insensitive, partial-match** se
 
 **Response:** `PagedResult<Brewery>` with `items`, `totalCount`, `page`, `pageSize`, `totalPages`.
 
+#### Sorting by Distance
+
+The API accepts the user's current location as `latitude` and `longitude` parameters, then calculates the [haversine distance](https://en.wikipedia.org/wiki/Haversine_formula) between that origin point and each brewery's coordinates from the Open Brewery DB data source. Results are sorted by nearest-to-farthest or farthest-to-nearest based on the requested sort direction.
+
+**Example — 5 closest breweries to New York City:**
+
+```http
+GET /api/v1/breweries?sortBy=Distance&latitude=40.7128&longitude=-74.0060&sortDirection=Asc&pageSize=5
+```
+
+**Behavior:**
+
+| Scenario | Result |
+|---|---|
+| `sortBy=Distance` with `latitude` and `longitude` | Breweries sorted by distance from the given origin |
+| `sortDirection=Asc` | Nearest breweries first |
+| `sortDirection=Desc` | Farthest breweries first |
+| Brewery has no lat/lon in source data | Placed at the **end** of results (treated as infinite distance) |
+| `sortBy=Distance` **without** `latitude` or `longitude` | Returns `400 Bad Request` with error message |
+
+**How the distance is calculated:**
+
+The `GeoDistance.Calculate()` method uses the **haversine formula** to compute the great-circle distance in kilometres between the user's origin `(latitude, longitude)` and each brewery's coordinates. Breweries with missing coordinates (`null` latitude or longitude) return `double.MaxValue`, which ensures they always appear last in ascending sort order.
+
+**More examples:**
+
+| Origin | Parameters | What It Returns |
+|---|---|---|
+| New York City | `latitude=40.7128&longitude=-74.006` | Nearest breweries to NYC |
+| London | `latitude=51.5074&longitude=-0.1278` | Nearest breweries to London |
+| San Francisco | `latitude=37.7749&longitude=-122.4194` | Nearest breweries to SF |
+| Portland + search | `search=micro&sortBy=Distance&latitude=45.52&longitude=-122.68` | Nearest **micro** breweries to Portland |
+
 ### Get Brewery by ID
 
 ```http
