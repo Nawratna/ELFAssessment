@@ -180,6 +180,37 @@ GET /api/v1/breweries?search=portland&sortBy=Name&sortDirection=Asc&page=1&pageS
 | `page` | int | 1 | Page number (1-based) |
 | `pageSize` | int | 50 | Items per page (clamped to 1–200) |
 
+#### Search Field Details
+
+The `search` parameter performs a **single, case-insensitive, partial-match** search across **6 brewery fields simultaneously**:
+
+| Searchable Field | Example Value | Sample Search Term |
+|---|---|---|
+| **Name** | `10 Barrel Brewing Co` | `Barrel` |
+| **City** | `Portland`, `Austin`, `Lebbeke` | `Portland` |
+| **State / Province** | `Oregon`, `Texas`, `Vlaanderen` | `Oregon` |
+| **Country** | `United States`, `Belgium`, `Germany` | `Belgium` |
+| **Brewery Type** | `micro`, `brewpub`, `nano`, `large` | `micro` |
+| **Postal Code** | `97201`, `73301`, `9280` | `97201` |
+
+**How it works:**
+- A single search term is matched against **all 6 fields** using `Contains()` (partial match).
+- If any field matches, the brewery is included in the results.
+- The search is **not** limited to one field — entering `Portland` finds breweries where the **name**, **city**, **state**, or **any other field** contains "Portland".
+- Search is combined with sorting and pagination — you can search, sort, and page in a single request.
+
+**Example searches:**
+
+| Search Term | What It Finds |
+|---|---|
+| `portland` | All breweries in Portland (city), or with "Portland" in the name |
+| `micro` | All micro breweries (by brewery type) |
+| `Belgium` | All breweries in Belgium (by country) |
+| `97201` | All breweries with postal code 97201 |
+| `Lebbeke` | Breweries in the city of Lebbeke, Belgium |
+| `Barrel` | Breweries with "Barrel" in their name (e.g., "10 Barrel Brewing Co") |
+| `brew` | Matches breweries with "brew" in name AND all "brewpub" type breweries |
+
 **Response:** `PagedResult<Brewery>` with `items`, `totalCount`, `page`, `pageSize`, `totalPages`.
 
 ### Get Brewery by ID
